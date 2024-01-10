@@ -1,30 +1,22 @@
 plugins {
-    id "com.github.johnrengelman.shadow" version "7.1.2"
-    id "me.modmuss50.mod-publish-plugin" version "0.3.0"
+    id "platform-conventions"
 }
 
-archivesBaseName = getArtifactId("{{ fabric_path }}")
+platformConventions {
+    platform = "fabric"
+    shadowProjectConfiguration = "transformProductionFabric"
+    mavenPublication = "mavenFabric"
+}
 
 architectury {
-    platformSetupLoomIde()
     fabric()
 }
 
-loom {
-    accessWidenerPath = project(":{{ common_path }}").loom.accessWidenerPath
-}
-
 configurations {
-    common
-    shadowCommon // Don't use shadow from the shadow plugin since it *excludes* files.
-    compileClasspath.extendsFrom common
-    runtimeClasspath.extendsFrom common
     developmentFabric.extendsFrom common
 }
 
 dependencies {
-    modCompileOnly(group: 'com.google.code.findbugs', name: 'jsr305', version: '3.0.2') // for @Nonnull
-
     // Loaders and base APIs
     modImplementation "net.fabricmc:fabric-loader:${project.fabricLoaderVersion}"
     modApi "net.fabricmc.fabric-api:fabric-api:${fabricApiVersion}"
@@ -52,102 +44,32 @@ dependencies {
     include "io.github.tropheusj:serialization-hooks:${serializationHooksVersion}"
 
     modImplementation "dev.emi:trinkets:${trinketsVersion}"
-
-    common(project(path: ":{{ common_path }}", configuration: "namedElements")) { transitive false }
-    shadowCommon(project(path: ":{{ common_path }}", configuration: "transformProductionFabric")) { transitive false }
-}
-
-shadowJar {
-    exclude "architectury.common.json"
-
-    configurations = [project.configurations.shadowCommon]
-    archiveClassifier.set "dev-shadow"
 }
 
 remapJar {
     injectAccessWidener = true
-    input.set shadowJar.archiveFile
-    dependsOn shadowJar
-    archiveClassifier.set null
-}
-
-jar {
-    archiveClassifier.set "dev"
-}
-
-sourcesJar {
-    def commonSources = project(":{{ common_path }}").sourcesJar
-    dependsOn commonSources
-    from commonSources.archiveFile.map { zipTree(it) }
-}
-
-components.java {
-    withVariantsFromConfiguration(project.configurations.shadowRuntimeElements) {
-        skip()
-    }
 }
 
 publishing {
     publications {
         mavenFabric(MavenPublication) {
-            artifactId = project.archivesBaseName + "-" + project.name + "-fabric"
+            artifactId = "${project.archivesBaseName}-${project.name}-fabric"
             from components.java
         }
-    }
-
-    // See https://docs.gradle.org/current/userguide/publishing_maven.html for information on how to set up publishing.
-    repositories {
-        // Add repositories to publish to here.
     }
 }
 
 publishMods {
-    file = remapJar.archiveFile
-    additionalFiles.from(sourcesJar.archiveFile)
-    changelog = getLatestChangelog()
-    type = STABLE
-    modLoaders.add("fabric")
-    modLoaders.add("quilt")
-
-    version = project.version + "-fabric"
-    displayName = "{{ display_name }} $project.version [Fabric]"
+    modLoaders.addAll("fabric", "quilt")
 
     // Uncomment your desired platform(s)
 //    curseforge {
-//        accessToken = project.curseforgeApiToken
-//        projectId = project.curseforgeId
-//        minecraftVersions.add(minecraftVersion)
-//
-//        requires{
-//            slug = "fabric-api"
-//        }
-//        requires {
-//            slug = "architectury-api"
-//        }
-//        requires {
-//            slug = "fabric-language-kotlin"
-//        }
-//        requires {
-//            slug = "hexcasting"
-//        }
+//        requires { slug = "fabric-api" }
+//        requires { slug = "fabric-language-kotlin" }
 //    }
 //
 //    modrinth {
-//        accessToken = project.modrinthApiToken
-//        projectId = project.modrinthId
-//        minecraftVersions.add("1.19.2")
-//
-//        requires{
-//            slug = "fabric-api"
-//        }
-//        requires {
-//            slug = "architectury-api"
-//        }
-//        requires {
-//            slug = "fabric-language-kotlin"
-//        }
-//        requires {
-//            slug = "hex-casting"
-//        }
+//        requires { slug = "fabric-api" }
+//        requires { slug = "fabric-language-kotlin" }
 //    }
 }

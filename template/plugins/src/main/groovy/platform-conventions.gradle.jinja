@@ -1,0 +1,106 @@
+plugins {
+    id "com.github.johnrengelman.shadow"
+    id "me.modmuss50.mod-publish-plugin"
+}
+
+// configuration for this plugin
+
+interface PlatformConventionsExtension {
+    Property<String> getPlatform()
+    Property<String> getShadowProjectConfiguration()
+    Property<String> getMavenPublication()
+}
+
+def extension = extensions.create("platformConventions", PlatformConventionsExtension)
+
+// common build logic for all platforms (ie. Fabric, Forge)
+
+archivesBaseName = getArtifactId(extension.platform)
+
+architectury {
+    platformSetupLoomIde()
+}
+
+loom {
+    accessWidenerPath = project(":{{ common_path }}").loom.accessWidenerPath
+}
+
+configurations {
+    common
+    shadowCommon // Don't use shadow from the shadow plugin since it *excludes* files.
+    compileClasspath.extendsFrom common
+    runtimeClasspath.extendsFrom common
+}
+
+dependencies {
+    modCompileOnly(group: 'com.google.code.findbugs', name: 'jsr305', version: '3.0.2') // for @Nonnull
+
+    common(project(path: ":{{ common_path }}", configuration: "namedElements")) { transitive false }
+    
+    shadowCommon(project(path: ":{{ common_path }}", configuration: extension.shadowProjectConfiguration)) { transitive false }
+}
+
+shadowJar {
+    exclude "architectury.common.json"
+
+    configurations = [project.configurations.shadowCommon]
+    archiveClassifier.set "dev-shadow"
+}
+
+remapJar {
+    input.set shadowJar.archiveFile
+    dependsOn shadowJar
+    archiveClassifier.set null
+}
+
+jar {
+    archiveClassifier.set "dev"
+}
+
+sourcesJar {
+    def commonSources = project(":{{ common_path }}").sourcesJar
+    dependsOn commonSources
+    from commonSources.archiveFile.map { zipTree(it) }
+}
+
+components.java {
+    withVariantsFromConfiguration(project.configurations.shadowRuntimeElements) {
+        skip()
+    }
+}
+
+// See https://docs.gradle.org/current/userguide/publishing_maven.html for information on how to set up publishing.
+publishing {
+    repositories {
+        // Add repositories to publish to here.
+    }
+}
+
+publishMods {
+    file = remapJar.archiveFile
+    additionalFiles.from(sourcesJar.archiveFile)
+    changelog = getLatestChangelog()
+    type = STABLE
+
+    version = "${project.version}-${extension.platform}"
+    displayName = "{{ display_name }} ${project.version} [${extension.platform}]"
+
+    // Uncomment your desired platform(s)
+//    curseforge {
+//        accessToken = project.curseforgeApiToken
+//        projectId = project.curseforgeId
+//        minecraftVersions.add(project.minecraftVersion)
+//
+//        requires { slug = "architectury-api" }
+//        requires { slug = "hexcasting" }
+//    }
+//
+//    modrinth {
+//        accessToken = project.modrinthApiToken
+//        projectId = project.modrinthId
+//        minecraftVersions.add(project.minecraftVersion)
+//
+//        requires { slug = "architectury-api" }
+//        requires { slug = "hex-casting" }
+//    }
+}
