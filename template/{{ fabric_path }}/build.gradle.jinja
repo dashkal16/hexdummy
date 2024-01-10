@@ -4,8 +4,6 @@ plugins {
 
 platformConventions {
     platform = "fabric"
-    shadowProjectConfiguration = "transformProductionFabric"
-    mavenPublication = "mavenFabric"
 }
 
 architectury {
@@ -44,6 +42,9 @@ dependencies {
     include "io.github.tropheusj:serialization-hooks:${serializationHooksVersion}"
 
     modImplementation "dev.emi:trinkets:${trinketsVersion}"
+
+    common(project(path: ":{{ common_path }}", configuration: "namedElements")) { transitive false }
+    shadowCommon(project(path: ":{{ common_path }}", configuration: "transformProductionFabric")) { transitive false }
 }
 
 remapJar {

@@ -8,7 +8,6 @@ plugins {
 interface PlatformConventionsExtension {
     Property<String> getPlatform()
     Property<String> getShadowProjectConfiguration()
-    Property<String> getMavenPublication()
 }
 
 def extension = extensions.create("platformConventions", PlatformConventionsExtension)
@@ -34,10 +33,6 @@ configurations {
 
 dependencies {
     modCompileOnly(group: 'com.google.code.findbugs', name: 'jsr305', version: '3.0.2') // for @Nonnull
-
-    common(project(path: ":{{ common_path }}", configuration: "namedElements")) { transitive false }
-    
-    shadowCommon(project(path: ":{{ common_path }}", configuration: extension.shadowProjectConfiguration)) { transitive false }
 }
 
 shadowJar {

@@ -4,8 +4,6 @@ plugins {
 
 platformConventions {
     platform = "forge"
-    shadowProjectConfiguration = "transformProductionForge"
-    mavenPublication = "mavenForge"
 }
 
 architectury {
@@ -42,6 +40,9 @@ dependencies {
     modRuntimeOnly "vazkii.patchouli:Patchouli:${minecraftVersion}-${patchouliVersion}"
 
     runtimeOnly "thedarkcolour:kotlinforforge:$project.forgeKotlinVersion"
+
+    common(project(path: ":{{ common_path }}", configuration: "namedElements")) { transitive false }
+    shadowCommon(project(path: ":{{ common_path }}", configuration: "transformProductionForge")) { transitive false }
 }
 
 shadowJar {
